@@ -1,0 +1,28 @@
+.scoreboard {
+    flex-grow: 1;
+    width: 439px;
+    background-size: 100% 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    align-self: center;
+    translate: 0 450px;
+    scale: 2 2;
+    transition-duration: 1s;
+    transition-timing-function: ease-in-out-back;
+    opacity: 1;
+}
+
+.scoreboard:enabled {
+    flex-grow: 1;
+    width: 439px;
+    background-size: 100% 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    align-self: center;
+    translate: 0 0;
+    scale: 1 1;
+    transition-duration: 1s;
+    transition-timing-function: ease-in-out-back;
+}
