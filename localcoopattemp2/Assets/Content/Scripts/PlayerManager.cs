@@ -11,13 +11,22 @@ namespace GDD4500.LAB01
 {
     public class PlayerManager : MonoBehaviour
     {
+        #region Singleton
+        // this just holds the single instance of PlayerManager
         public static PlayerManager Instance;
+        #endregion
 
+        #region Events
+        // this just fires when a player joins
         public Action<PlayerInputContext> OnPlayerJoined;
-        public Action<PlayerInputContext> OnPlayerRemoved;
 
+        // this just fires when a player is removed
+        public Action<PlayerInputContext> OnPlayerRemoved;
+        #endregion
+
+        #region Inspector Settings
         [Header("Asset & Maps")]
-        [SerializeField] private InputActionAsset sharedAsset;    // your .inputactions (has Lobby + Gameplay)
+        [SerializeField] private InputActionAsset sharedAsset; // this just stores your .inputactions
         [SerializeField] private string lobbyMapName = "Lobby";
         [SerializeField] private string gameplayMapName = "Gameplay";
         [Space]
@@ -33,18 +42,25 @@ namespace GDD4500.LAB01
         [SerializeField] private string[] keyboardSchemeNames = { "Keyboard Left", "Keyboard Right" };
 
         [Header("Activation")]
-        [SerializeField] private bool enableGameplayOnJoin = false; // set true if you want immediate gameplay control
+        [SerializeField] private bool enableGameplayOnJoin = false; // this just decides if players instantly control
+        #endregion
 
-
-
+        #region Private Fields
+        // this just tracks all players in the match
         private readonly List<PlayerInputContext> _players = new();
+
+        // this just prevents two players from using the same keyboard scheme
         private readonly HashSet<string> _claimedKBMSchemes = new();
+
+        // this just references input actions for joining/exiting
         private InputAction _joinAction;
         private InputAction _exitAction;
+        #endregion
 
+        #region Unity Lifecycle
         private void Awake()
         {
-            // Singleton boilerplate
+            // this just enforces Singleton pattern
             if (Instance != null)
             {
                 Destroy(this.gameObject);
@@ -53,40 +69,45 @@ namespace GDD4500.LAB01
 
             Instance = this;
 
-            // Ensure this object is not destroyed when the scene is unloaded
+            // this just keeps the object alive across scenes
             DontDestroyOnLoad(this.gameObject);
         }
 
-        void OnEnable()
+        private void OnEnable()
         {
+            // this just finds the lobby input map
             var lobby = sharedAsset.FindActionMap(lobbyMapName, true);
-            _joinAction = lobby.FindAction(joinActionName, true);
 
-            // NOTE: This action listens globally (not tied to any InputUser).
+            // this just gets the Join action
+            _joinAction = lobby.FindAction(joinActionName, true);
             _joinAction.performed += OnJoinPerformed;
             _joinAction.Enable();
 
+            // this just gets the Exit action
             _exitAction = lobby.FindAction(exitActionName, true);
-
             _exitAction.performed += OnExitPerformed;
             _exitAction.Enable();
-
         }
 
-        void OnDisable()
+        private void OnDisable()
         {
+            // this just cleans up join action
             if (_joinAction != null)
             {
                 _joinAction.performed -= OnJoinPerformed;
                 _joinAction.Disable();
             }
+
+            // this just cleans up exit action
             if (_exitAction != null)
             {
                 _exitAction.performed -= OnExitPerformed;
                 _exitAction.Disable();
             }
         }
+        #endregion
 
+        #region Exit Handling
         private void OnExitPerformed(InputAction.CallbackContext ctx)
         {
             var control = ctx.control;
@@ -94,7 +115,7 @@ namespace GDD4500.LAB01
 
             var device = control.device;
 
-            // Find which player this device belongs to
+            // this just finds which player the device belongs to
             var player = _players.FirstOrDefault(p => p.User.pairedDevices.Contains(device));
             if (player == null)
             {
@@ -107,40 +128,43 @@ namespace GDD4500.LAB01
 
         private void RemovePlayer(PlayerInputContext player)
         {
-            // Unpair devices
+            // this just unpairs devices
             player.User.UnpairDevicesAndRemoveUser();
 
-            // Release KBM scheme if used
+            // this just releases keyboard scheme if used
             if (IsKBMScheme(player.SchemeName))
             {
                 _claimedKBMSchemes.Remove(player.SchemeName);
             }
 
-            // Destroy their Actions asset
+            // this just destroys the player's action asset
             if (player.Actions != null)
             {
                 Destroy(player.Actions);
             }
 
-            // Destroy their GameObject
+            // this just destroys the player's GameObject
             if (player.Handler != null && player.Handler.gameObject != null)
             {
                 Destroy(player.Handler.gameObject);
             }
 
-            // Remove from list
+            // this just removes the player from list
             _players.Remove(player);
 
             Debug.Log($"[Lobby] Player {player.Index + 1} removed.");
 
-            // Reindex players so indexes stay consistent
+            // this just reindexes all players so order stays correct
             for (int i = 0; i < _players.Count; i++)
             {
                 _players[i].Index = i;
             }
+
             OnPlayerRemoved?.Invoke(player);
         }
+        #endregion
 
+        #region Join Handling
         private void OnJoinPerformed(InputAction.CallbackContext ctx)
         {
             if (_players.Count >= maxPlayers) return;
@@ -150,39 +174,30 @@ namespace GDD4500.LAB01
 
             var device = control.device;
 
-            // Determine which binding (and thus which group) triggered this.
+            // this just determines binding group and scheme
             string bindingGroup = ResolveBindingGroup(_joinAction, control);
             string schemeToUse = ChooseScheme(bindingGroup, device);
             if (schemeToUse == null)
             {
-                Debug.Log($"[Lobby] No valid scheme available for {device} (bindingGroup={bindingGroup}).");
+                Debug.Log($"[Lobby] No valid scheme for {device} (bindingGroup={bindingGroup}).");
                 return;
             }
 
-            // Prevent reusing a gamepad already paired; allow keyboard reuse for split keyboard.
+            // this just prevents duplicate gamepad use
             if (device is Gamepad && IsDevicePaired(device))
             {
                 Debug.Log($"[Lobby] {device.displayName} is already taken.");
                 return;
             }
 
-
-
-
-            // If it’s a KBM scheme that’s already in use, try the sibling; otherwise fail.
+            // this just prevents duplicate keyboard scheme use
             if (IsKBMScheme(schemeToUse) && _claimedKBMSchemes.Contains(schemeToUse))
             {
-
-                // var alt = GetAlternateKBMScheme();
-                // if (alt != null) schemeToUse = alt;
-                // else
-                // {
-                    Debug.Log("[Lobby] Keyboard scheme taken.");
-                    return;
-                //}
+                Debug.Log("[Lobby] Keyboard scheme taken.");
+                return;
             }
 
-            // Build the device list to pair.
+            // this just builds a list of devices to pair
             var toPair = new List<InputDevice>();
             if (device is Gamepad gp)
             {
@@ -190,48 +205,50 @@ namespace GDD4500.LAB01
             }
             else if (device is Keyboard || device is Mouse)
             {
-                // For split keyboard, we pair the Keyboard (optionally Mouse) to each user.
                 if (Keyboard.current != null) toPair.Add(Keyboard.current);
             }
             else
             {
-                // Unsupported device type for join
-                Debug.Log($"[Lobby] Ignoring device type {device?.GetType().Name} for join.");
+                Debug.Log($"[Lobby] Ignoring unsupported device {device?.GetType().Name}.");
                 return;
             }
 
             CreatePlayer(toPair, schemeToUse);
         }
+        #endregion
 
+        #region Player Creation
         private void CreatePlayer(List<InputDevice> devices, string scheme)
         {
-            // Make a per-player clone of the whole asset
+            // this just makes a per-player copy of the input asset
             var perPlayer = Instantiate(sharedAsset);
 
-            // Create user and pair devices
+            // this just creates a new InputUser and pairs devices
             var user = InputUser.PerformPairingWithDevice(devices[0]);
             for (int i = 1; i < devices.Count; i++)
                 InputUser.PerformPairingWithDevice(devices[i], user);
 
-            // Associate actions with the user (so scheme activation applies a binding mask)
+            // this just associates actions with the user
             user.AssociateActionsWithUser(perPlayer);
 
-            // Activate the selected scheme (filters bindings to that group)
+            // this just activates the selected control scheme
             user.ActivateControlScheme(scheme);
 
-            // Optional: explicitly enforce mask too 
+            // this just enforces binding mask explicitly
             perPlayer.bindingMask = InputBinding.MaskByGroup(scheme);
 
-            // Enable gameplay now or later (e.g., when the match starts)
+            // this just enables gameplay map if auto-start enabled
             if (enableGameplayOnJoin)
             {
                 var gm = perPlayer.FindActionMap(gameplayMapName, true);
                 gm.Enable();
             }
 
-            // Spawn player and hand over context
+            // this just spawns the player prefab
             var go = Instantiate(playerPrefab);
             var handler = go.GetComponent<PlayerInputHandler>();
+
+            // this just creates context for the new player
             var ctx = new PlayerInputContext
             {
                 Index = _players.Count,
@@ -239,30 +256,28 @@ namespace GDD4500.LAB01
                 User = user,
                 Actions = perPlayer,
                 Handler = handler
-
             };
             _players.Add(ctx);
 
+            // this just marks KBM scheme as claimed
             if (IsKBMScheme(scheme))
             {
-
                 _claimedKBMSchemes.Add(scheme);
             }
 
+            // this just initializes the handler if present
             if (handler != null) handler.Initialize(ctx);
 
             OnPlayerJoined?.Invoke(ctx);
 
             Debug.Log($"[Lobby] Player {ctx.Index + 1} joined with scheme '{scheme}' and devices: {string.Join(", ", devices.Select(d => d.displayName))}");
         }
+        #endregion
 
-        // Call this when you want to start the match:
+        #region Match/Lobby Management
         public void StartMatch()
         {
-            // Stop listening for new joins
-            if (_joinAction != null) _joinAction.Disable();
-            if (_exitAction != null) _exitAction.Disable();
-
+            // this just enables gameplay map for all players
             foreach (var p in _players)
             {
                 var map = p.Actions.FindActionMap(gameplayMapName, true);
@@ -273,10 +288,7 @@ namespace GDD4500.LAB01
 
         public void StartLobby()
         {
-            // Stop listening for new joins
-            if (_joinAction != null) _joinAction.Enable();
-            if (_exitAction != null) _exitAction.Enable();
-
+            // this just disables gameplay map for all players
             foreach (var p in _players)
             {
                 var map = p.Actions.FindActionMap(lobbyMapName, true);
@@ -284,9 +296,12 @@ namespace GDD4500.LAB01
             }
             Debug.Log("[Lobby] Lobby started.");
         }
+        #endregion
 
+        #region Utilities
         private bool IsDevicePaired(InputDevice device)
         {
+            // this just checks if the device is already paired
             foreach (var p in _players)
                 if (p.User.pairedDevices.Contains(device)) return true;
             return false;
@@ -295,23 +310,20 @@ namespace GDD4500.LAB01
         private static bool IsKBMScheme(string scheme)
             => scheme != null && scheme.StartsWith("Keyboard");
 
-
         private string ChooseScheme(string bindingGroup, InputDevice device)
         {
-            // If binding specified a group, prefer it (and ensure it exists in the asset)
+            // this just prefers binding group if it exists
             if (!string.IsNullOrEmpty(bindingGroup) &&
                 sharedAsset.controlSchemes.Any(cs => cs.name == bindingGroup))
             {
                 return bindingGroup;
             }
 
-            // Otherwise infer from device kind
-            if (device is Gamepad)
-                return gamepadSchemeName;
+            // this just infers scheme by device type
+            if (device is Gamepad) return gamepadSchemeName;
 
             if (device is Keyboard || device is Mouse)
             {
-                // Pick first available keyboard scheme
                 foreach (var s in keyboardSchemeNames)
                     if (!_claimedKBMSchemes.Contains(s)) return s;
             }
@@ -321,19 +333,18 @@ namespace GDD4500.LAB01
 
         private static string ResolveBindingGroup(InputAction action, InputControl triggeringControl)
         {
-            // Find which binding path matches the control, then read its groups (semicolon-separated)
+            // this just finds which binding group matches the triggering control
             var bindings = action.bindings;
             for (int i = 0; i < bindings.Count; i++)
             {
                 var b = bindings[i];
                 if (b.isComposite || b.isPartOfComposite) continue;
 
-                var path = b.path; // use raw path; good enough for join
+                var path = b.path;
                 if (string.IsNullOrEmpty(path)) continue;
 
                 if (InputControlPath.Matches(path, triggeringControl))
                 {
-                    // groups format: "KBM_P1;AnotherGroup"
                     var groups = b.groups;
                     if (string.IsNullOrEmpty(groups)) return null;
 
@@ -346,8 +357,10 @@ namespace GDD4500.LAB01
 
         public List<PlayerInputHandler> GetPlayers()
         {
+            // this just returns the player handlers list
             return _players.Select(p => p.Handler).ToList();
         }
+        #endregion
     }
 }
 

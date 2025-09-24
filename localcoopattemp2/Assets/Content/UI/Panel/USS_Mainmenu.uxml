@@ -1,0 +1,14 @@
+<engine:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:engine="UnityEngine.UIElements" xmlns:editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/Content/UI/Panel/scoreboard.uss?fileID=7433441132597879392&amp;guid=9c7b132baadbbcd4e99fe61ece793ba7&amp;type=3#scoreboard" />
+    <engine:VisualElement name="BasicMenu" enabled="true" class="basicmainmenu" style="background-color: rgba(0, 0, 0, 0);">
+        <engine:VisualElement style="flex-grow: 1; background-image: none; width: 537px; -unity-background-image-tint-color: rgba(0, 0, 0, 0.86); border-top-left-radius: 145px; border-top-right-radius: 145px; border-bottom-right-radius: 145px; border-bottom-left-radius: 145px; border-left-width: 15px; translate: 0 0; background-color: rgba(86, 86, 86, 0.85); height: 1088px; border-left-color: rgb(0, 0, 0); border-right-color: rgb(0, 0, 0); border-top-color: rgb(0, 0, 0); border-bottom-color: rgb(0, 0, 0); border-bottom-width: 15px; border-right-width: 15px; border-top-width: 15px;">
+            <engine:GroupBox style="height: 240px; width: 445px; justify-content: center; align-self: flex-start; align-items: auto;">
+                <engine:Label text="Glidebreakers" style="font-size: 50px; height: 186px; width: 356px; -unity-text-align: upper-center; -unity-font-style: bold-and-italic; color: rgb(25, 0, 178); -unity-text-outline-width: 3px; -unity-text-outline-color: rgb(0, 0, 0);" />
+            </engine:GroupBox>
+            <engine:GroupBox style="justify-content: flex-start; align-self: auto; align-content: auto; align-items: auto; flex-direction: column-reverse; height: 321px; width: 480px; border-top-left-radius: 0; border-top-right-radius: 0; border-bottom-right-radius: 0; border-bottom-left-radius: 0; -unity-text-align: upper-center;">
+                <engine:Button text="Exit&#10;" name="Exit" class="BaseButton" style="-unity-background-image-tint-color: rgb(255, 243, 140); -unity-text-align: middle-center; width: 391px;" />
+                <engine:Button text="Start&#10;" name="Start" class="BaseButton" style="-unity-background-image-tint-color: rgb(255, 243, 140); -unity-text-align: middle-center; width: 431px;" />
+            </engine:GroupBox>
+        </engine:VisualElement>
+    </engine:VisualElement>
+</engine:UXML>
